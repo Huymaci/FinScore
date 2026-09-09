@@ -1,0 +1,120 @@
+{
+  "generatedAt": "2026-09-08T10:18:26.9049397Z",
+  "source": "https://api.iconify.design (Material Design Icons)",
+  "size": "128x128",
+  "count": 14,
+  "categories": {
+    "thu-nhap": {
+      "name": "Thu nhập",
+      "en": "Income",
+      "icon": "mdi:cash-plus",
+      "color": "#188469",
+      "file": "thu-nhap.svg",
+      "source": "https://api.iconify.design/mdi/cash-plus.svg?height=128&color=%23188469"
+    },
+    "nha-o": {
+      "name": "Nhà ở",
+      "en": "Housing",
+      "icon": "mdi:home-city",
+      "color": "#406eaf",
+      "file": "nha-o.svg",
+      "source": "https://api.iconify.design/mdi/home-city.svg?height=128&color=%23406eaf"
+    },
+    "hoc-phi": {
+      "name": "Học phí",
+      "en": "Tuition",
+      "icon": "mdi:school",
+      "color": "#5b7fc4",
+      "file": "hoc-phi.svg",
+      "source": "https://api.iconify.design/mdi/school.svg?height=128&color=%235b7fc4"
+    },
+    "dien-nuoc": {
+      "name": "Điện nước",
+      "en": "Utilities",
+      "icon": "mdi:flash",
+      "color": "#d9a441",
+      "file": "dien-nuoc.svg",
+      "source": "https://api.iconify.design/mdi/flash.svg?height=128&color=%23d9a441"
+    },
+    "vien-thong": {
+      "name": "Viễn thông",
+      "en": "Telecom",
+      "icon": "mdi:wifi",
+      "color": "#4a90b8",
+      "file": "vien-thong.svg",
+      "source": "https://api.iconify.design/mdi/wifi.svg?height=128&color=%234a90b8"
+    },
+    "y-te": {
+      "name": "Y tế",
+      "en": "Healthcare",
+      "icon": "mdi:medical-bag",
+      "color": "#cf5b58",
+      "file": "y-te.svg",
+      "source": "https://api.iconify.design/mdi/medical-bag.svg?height=128&color=%23cf5b58"
+    },
+    "an-uong": {
+      "name": "Ăn uống",
+      "en": "Dining",
+      "icon": "mdi:silverware-fork-knife",
+      "color": "#d37e20",
+      "file": "an-uong.svg",
+      "source": "https://api.iconify.design/mdi/silverware-fork-knife.svg?height=128&color=%23d37e20"
+    },
+    "mua-sam": {
+      "name": "Mua sắm",
+      "en": "Shopping",
+      "icon": "mdi:shopping",
+      "color": "#955ca9",
+      "file": "mua-sam.svg",
+      "source": "https://api.iconify.design/mdi/shopping.svg?height=128&color=%23955ca9"
+    },
+    "di-chuyen": {
+      "name": "Di chuyển",
+      "en": "Transport",
+      "icon": "mdi:bus",
+      "color": "#188469",
+      "file": "di-chuyen.svg",
+      "source": "https://api.iconify.design/mdi/bus.svg?height=128&color=%23188469"
+    },
+    "nhien-lieu": {
+      "name": "Nhiên liệu",
+      "en": "Fuel",
+      "icon": "mdi:gas-station",
+      "color": "#b8763a",
+      "file": "nhien-lieu.svg",
+      "source": "https://api.iconify.design/mdi/gas-station.svg?height=128&color=%23b8763a"
+    },
+    "hoc-tap": {
+      "name": "Học tập",
+      "en": "Education",
+      "icon": "mdi:book-open-page-variant",
+      "color": "#6a7fb0",
+      "file": "hoc-tap.svg",
+      "source": "https://api.iconify.design/mdi/book-open-page-variant.svg?height=128&color=%236a7fb0"
+    },
+    "khac": {
+      "name": "Khác",
+      "en": "Other",
+      "icon": "mdi:dots-horizontal-circle",
+      "color": "#7a8a84",
+      "file": "khac.svg",
+      "source": "https://api.iconify.design/mdi/dots-horizontal-circle.svg?height=128&color=%237a8a84"
+    },
+    "chuyen-khoan": {
+      "name": "Chuyển khoản",
+      "en": "Transfer",
+      "icon": "mdi:bank-transfer",
+      "color": "#406eaf",
+      "file": "chuyen-khoan.svg",
+      "source": "https://api.iconify.design/mdi/bank-transfer.svg?height=128&color=%23406eaf"
+    },
+    "uncategorised": {
+      "name": "Uncategorised",
+      "en": "Uncategorised",
+      "icon": "mdi:help-circle",
+      "color": "#9aa7a1",
+      "file": "uncategorised.svg",
+      "source": "https://api.iconify.design/mdi/help-circle.svg?height=128&color=%239aa7a1"
+    }
+  }
+}
