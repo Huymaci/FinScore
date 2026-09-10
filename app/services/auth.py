@@ -4,7 +4,7 @@ from datetime import date, datetime, timedelta
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from app.extensions import db
-from app.models import Ledger, User, utcnow
+from app.models import AuditLog, Ledger, User, utcnow
 from app.repositories import UserRepository
 
 from .common import EMAIL_RE, ValidationError, require_fields
@@ -86,8 +86,15 @@ def authenticate(email, password):
     if not user or not password_matches:
         if user:
             user.failed_logins += 1
-            if user.failed_logins >= 5:
+            locked = user.failed_logins >= 5
+            if locked:
                 user.locked_until = now + timedelta(minutes=15)
+            # FR-50/NFR-10: the admin console reports how many sign-ins failed
+            # over a window. users.failed_logins cannot answer that -- it is a
+            # streak counter reset to 0 by the next success -- so each failure
+            # also lands in audit_logs. Only the user id is stored, never the
+            # email or the attempted password.
+            db.session.add(AuditLog(user_id=None, action=f"LOGIN_FAILED:{user.id}:{'LOCKED' if locked else 'OPEN'}"))
             db.session.commit()
         raise ValidationError("Email hoặc mật khẩu không đúng")
     user.failed_logins = 0

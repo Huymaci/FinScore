@@ -143,3 +143,80 @@ def update_support_report(report_id):
             include_user=True,
         ))
     )
+
+
+@admin_bp.get("/system-status")
+@primary_admin_required
+def system_status():
+    return jsonify(service.system_status())
+
+
+@admin_bp.get("/system-logs")
+@primary_admin_required
+def system_logs():
+    items, page = service.system_logs(
+        page=max(request.args.get("page", 1, type=int), 1),
+        per_page=max(1, min(request.args.get("per_page", 25, type=int), 100)),
+        category=request.args.get("category", "ALL"),
+        severity=request.args.get("severity", "ALL"),
+        query=request.args.get("q", "").strip(),
+        hours=request.args.get("hours", type=int),
+    )
+    return jsonify(items=items, total=page.total, page=page.page, pages=max(page.pages, 1))
+
+
+@admin_bp.get("/errors")
+@primary_admin_required
+def error_monitor():
+    from app.services import metrics
+    snapshot = metrics.snapshot()
+    handled = request.args.get("handled", "ALL")
+    groups = snapshot["error_groups"]
+    if handled == "OPEN":
+        groups = [group for group in groups if not group["handled"]]
+    elif handled == "HANDLED":
+        groups = [group for group in groups if group["handled"]]
+    return jsonify(items=groups, recent=metrics.recent_errors(50),
+                   partial=snapshot["partial"], since=snapshot["since"])
+
+
+@admin_bp.patch("/errors")
+@primary_admin_required
+def update_error_state():
+    from app.services import metrics
+    body = json_body()
+    updated = metrics.mark_handled(body.get("method", ""), body.get("rule", ""),
+                                   body.get("status", 0), bool(body.get("handled", True)))
+    if not updated:
+        abort(404)
+    return jsonify(message="Đã cập nhật trạng thái lỗi")
+
+
+# FR-51/NFR-09: the batch list carries no filename and no account name. A
+# statement filename regularly contains the account holder's own name, which
+# is exactly the identified data the console must not surface.
+@admin_bp.get("/import-batches")
+@primary_admin_required
+def import_batches():
+    from sqlalchemy import func, select
+
+    from app.extensions import db
+    from app.models import ImportBatch, ImportError, ImportTemplate
+    page_number = max(request.args.get("page", 1, type=int), 1)
+    statement = (
+        select(ImportBatch, ImportTemplate.bank_code, func.count(ImportError.id))
+        .join(ImportTemplate, ImportTemplate.id == ImportBatch.template_id)
+        .outerjoin(ImportError, ImportError.batch_id == ImportBatch.id)
+        .group_by(ImportBatch.id, ImportTemplate.bank_code)
+        .order_by(ImportBatch.created_at.desc())
+    )
+    status = request.args.get("status", "ALL")
+    if status != "ALL":
+        statement = statement.where(ImportBatch.status == status)
+    rows = db.paginate(statement, page=page_number, per_page=15, error_out=False)
+    return jsonify(
+        items=[{"id": batch.id, "bank_code": bank_code, "status": batch.status,
+                "error_rows": error_rows, "created_at": batch.created_at.isoformat(),
+                "reverted_at": batch.reverted_at.isoformat() if batch.reverted_at else None}
+               for batch, bank_code, error_rows in rows.items],
+        total=rows.total, page=rows.page, pages=max(rows.pages, 1))

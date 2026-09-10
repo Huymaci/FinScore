@@ -1,5 +1,5 @@
 :root{--ink:#1b1a17;--muted:#8b837a;--line:#eceae6;--bg:#f4efe9;--panel:#fff;--panel-soft:#f6f1eb;--elevate:#fff;--green:#1f9d57;--green-dark:#177d45;--green-soft:#e3f4ea;--mint:#c7ebd5;--orange:#e8590c;--orange-soft:#fdecdd;--red:#e5484d;--red-soft:#fbe9e9;--blue:#2f6bd8;--violet:#7c5cd6;--shadow:0 10px 30px rgba(35,24,12,.07),0 2px 8px rgba(35,24,12,.045);--radius:20px;--control:#fff;--surface-soft:#f6f1eb;--track:#eceae6;--accent-text:#1f9d57;--hero-grad:linear-gradient(180deg,#320604 0%,#6b0d04 9%,#a51703 17%,#cf3005 24%,#e54e09 30%,#ec6a13 37%,#ef8129 44%,#f0923f 51%,#eda45c 59%,#ebb27a 68%,#e8c092 78%,#e4c9a6 88%,#e1cfb5 100%);--dash-cols:1.6fr 1fr}
-.admin-user-pagination{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-top:1px solid var(--line);color:var(--muted);font-size:11px}
+
 .ring.good{background:conic-gradient(var(--green) calc(var(--value)*1%),var(--track) 0)}
 .ring.warning{background:conic-gradient(var(--orange) calc(var(--value)*1%),var(--track) 0)}
 .ring.danger{background:conic-gradient(var(--red) calc(var(--value)*1%),var(--track) 0)}
@@ -198,9 +198,7 @@ html[data-theme="dark"] .challenge-banner{border-color:#37675b;background:linear
 
 .account-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px}.account-actions button{white-space:nowrap}
 @media(max-width:520px){.account-item.archived{grid-template-columns:40px 1fr}.account-item.archived .account-actions{grid-column:2;justify-content:flex-start}}
-.admin-actions-cell{min-width:220px;white-space:normal}.admin-row-actions{display:flex;align-items:center;gap:7px;flex-wrap:wrap}.admin-row-actions .secondary-btn{min-height:34px;padding:7px 10px;line-height:1.2;white-space:normal}.admin-row-actions [data-admin-action="role"]{border-color:var(--green);color:var(--green)}
-.admin-user-filters select{min-width:150px;border:1px solid var(--line);border-radius:9px;background:var(--panel);padding:9px 10px;color:var(--ink)}.admin-row-actions [data-admin-action="violation-delete"]{margin:0;white-space:normal}
-@media(max-width:760px){.admin-actions-cell{min-width:190px}.admin-row-actions{align-items:stretch;flex-direction:column}.admin-row-actions .secondary-btn{width:100%;text-align:center}}
+
 .profile-avatar{background-position:center;background-size:cover}
 .profile-avatar-editor{display:flex;align-items:center;gap:18px;margin:18px 0}
 .profile-avatar-preview{display:grid;place-items:center;width:72px;height:72px;flex:0 0 72px;background-position:center;background-size:cover}
@@ -248,11 +246,8 @@ html[data-theme="dark"] .challenge-banner{border-color:#37675b;background:linear
 .duplicate-row-hint{display:block;margin-top:4px;color:#a5661d;font-size:9px}
 .import-note-input{min-width:180px;width:100%;padding:7px 9px;border:1px solid var(--line);border-radius:7px;background:var(--control,var(--panel));outline:none}
 .import-note-input:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(25,113,90,.1)}
-.import-pagination{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 20px;border-top:1px solid var(--line);color:var(--muted);font-size:11px;font-weight:700}
-.import-pagination>div{display:flex;gap:7px}
-.import-pagination button{padding:7px 11px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--green);font-weight:800}
-.import-pagination button:hover:not(:disabled){background:var(--green-soft)}
-.import-pagination button:disabled{opacity:.4;cursor:not-allowed}
+/* Layout only — .pagination now owns the buttons, so both pagers match. */
+.import-pagination{font-weight:700}
 .import-actions #cancel-import-preview{margin-left:auto}
 .import-warning{display:grid;gap:4px;margin:12px 20px;padding:12px 14px;border:1px solid #edcf9f;border-radius:10px;background:var(--orange-soft);color:#8a5416}
 .import-warning span{font-size:11px;color:var(--muted)}
@@ -267,7 +262,6 @@ html[data-theme="dark"] .import-error-row{background:#3c2424}
 .import-history-panel td:nth-child(2) b,.import-history-panel td:nth-child(2) small{display:block;max-width:260px;overflow:hidden;text-overflow:ellipsis}
 .import-history-panel td:nth-child(2) small{margin-top:2px;color:var(--muted);font-size:9px}
 .import-history-panel .danger-outline-btn{white-space:nowrap}
-.dashboard-grid>#support-admin-panel{grid-column:1/-1}
 
 /* ============================================================
    Warm dashboard skin (Nixtio-style) — light-first: warm off-white
@@ -398,12 +392,16 @@ td{border-color:var(--line)}
 .amount.out{color:var(--red)}
 .pagination button{background:var(--panel);border-color:var(--line);color:var(--ink);border-radius:9px}
 .pagination button.active{background:var(--ink);color:var(--panel)}
-.admin-user-filters select,.admin-user-pagination{border-color:var(--line)}
+/* States the pagination buttons never had: the same hover tint every other
+   control in the app uses, plus a real disabled and focus treatment. */
+.pagination button:hover:not(:disabled):not(.active){background:var(--panel-soft)}
+.pagination button:disabled{opacity:.45;cursor:not-allowed}
+.pagination button:focus-visible{outline:2px solid var(--green);outline-offset:2px}
 
 /* Inputs */
 .filters select,.page-heading select,.form-grid select,.form-grid input,
 .search-box,.transaction-date-filter,.filters input[type="month"],
-.statistics-control input,.statistics-control select,.admin-user-filters select{background:var(--panel);border-color:var(--line);color:var(--ink)}
+.statistics-control input,.statistics-control select,
 
 /* Charts */
 .income-line{stroke:var(--green)}
@@ -458,7 +456,6 @@ td{border-color:var(--line)}
 .detection-summary.review{border-color:var(--line);background:var(--orange-soft);color:var(--orange)}
 .import-decision-btn.accepted{background:var(--green);color:#fff;box-shadow:none}
 .import-decision-btn.rejected{background:var(--red);color:#fff;box-shadow:none}
-.import-pagination button{background:var(--panel);border-color:var(--line);color:var(--green)}
 .import-warning{border-color:var(--line);background:var(--orange-soft);color:var(--orange)}
 .import-warning.danger{border-color:var(--line);background:var(--red-soft);color:var(--red)}
 
@@ -696,8 +693,6 @@ html[data-theme="dark"] .direction-toggle input:checked+span{color:var(--green)}
 /* Admin panels have the same flush-to-the-edge tables, plus a paginator and a
    horizontal scrollbar that would square off the card corners. Clip the whole
    panel to its radius rather than patching each child. */
-#admin .panel{overflow:hidden}
-#admin .table-wrap{border-bottom-left-radius:var(--radius);border-bottom-right-radius:var(--radius)}
 
 /* Budget-usage card - the percentage is the headline, the bar is support. It
    stretches to the row height set by the transactions table beside it. */
@@ -882,7 +877,6 @@ html[data-theme="dark"] .topbar{background:transparent}
 /* Three choices (cancel · history only · history and transactions) need room. */
 .delete-history-dialog{width:min(460px,calc(100% - 30px))}
 .delete-history-dialog footer{flex-wrap:wrap;gap:8px}
-
 
 /* ============================================================
    Hero band — matched to the Nixtio banking reference shot: a

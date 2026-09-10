@@ -4,7 +4,7 @@ const localDateValue=()=>{const today=new Date();return `${today.getFullYear()}-
 const localMonthValue=()=>{const today=new Date();return `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}`};
 const monthDateRange=month=>{const [year,number]=month.split('-').map(Number),lastDay=new Date(year,number,0).getDate();return{dateFrom:`${month}-01`,dateTo:`${month}-${String(lastDay).padStart(2,'0')}`}};
 const initialStatisticsRange=monthDateRange(localMonthValue());
-const state={csrf:'',profile:null,accounts:[],archivedAccounts:[],categories:[],transactions:[],alerts:[],challenges:[],alertFilter:'ALL',selectedAlertIds:new Set(),alertDeleteBusy:false,month:localMonthValue(),importPreview:null,importReview:{page:1,pages:1,total:0,fileTotal:0,decisions:{},categoryOverrides:{},notes:{}},importHistory:[],importHistoryPage:1,selectedImportHistoryIds:new Set(),statisticsDateFrom:initialStatisticsRange.dateFrom,statisticsDateTo:initialStatisticsRange.dateTo,statisticsRenderedDateFrom:initialStatisticsRange.dateFrom,statisticsRenderedDateTo:initialStatisticsRange.dateTo,statisticsTrendThrough:localMonthValue(),statisticsTrend:[],statisticsBreakdownRequest:0,statisticsTrendRequest:0,realtimeRefresh:false,adminUserPage:1,dashCardActiveId:null,categoryLogos:{}};
+const state={csrf:'',profile:null,accounts:[],archivedAccounts:[],categories:[],transactions:[],alerts:[],challenges:[],alertFilter:'ALL',selectedAlertIds:new Set(),alertDeleteBusy:false,month:localMonthValue(),importPreview:null,importReview:{page:1,pages:1,total:0,fileTotal:0,decisions:{},categoryOverrides:{},notes:{}},importHistory:[],importHistoryPage:1,selectedImportHistoryIds:new Set(),statisticsDateFrom:initialStatisticsRange.dateFrom,statisticsDateTo:initialStatisticsRange.dateTo,statisticsRenderedDateFrom:initialStatisticsRange.dateFrom,statisticsRenderedDateTo:initialStatisticsRange.dateTo,statisticsTrendThrough:localMonthValue(),statisticsTrend:[],statisticsBreakdownRequest:0,statisticsTrendRequest:0,realtimeRefresh:false,dashCardActiveId:null,categoryLogos:{}};
 let observedLocalMonth=localMonthValue();
 const locale=()=>window.I18n.language==='en'?'en-US':'vi-VN';
 const money=v=>`${new Intl.NumberFormat(locale()).format(Number(v||0))} ₫`,dateVi=v=>v?new Intl.DateTimeFormat(locale()).format(new Date(`${v.slice(0,10)}T00:00:00`)):'—';
@@ -96,7 +96,7 @@ async function responseData(response){const type=response.headers.get('content-t
 async function getCsrf(){const r=await fetch('/auth/csrf',{credentials:'same-origin'}),d=await responseData(r);if(!r.ok)throw new ApiError(d?.error||`${t('request_failed')} (${r.status})`,r.status);if(!d.csrf_token)throw new ApiError(serverMessage(),r.status);state.csrf=d.csrf_token}
 async function api(path,options={}){const method=options.method||'GET';if(method!=='GET'&&!state.csrf)await getCsrf();const headers=new Headers(options.headers||{});if(method!=='GET')headers.set('X-CSRFToken',state.csrf);if(options.body&&!(options.body instanceof FormData))headers.set('Content-Type','application/json');const r=await fetch(path,{...options,method,headers,credentials:'same-origin'});if(r.status===401){showAuth();throw new ApiError(t('session_expired'),401)}const data=await responseData(r);if(!r.ok)throw new ApiError(data?.error||`${t('request_failed')} (${r.status})`,r.status);return data}
 const initials=name=>String(name||'').trim().split(/\s+/).slice(-2).map(part=>part[0]||'').join('').toLocaleUpperCase(locale())||'?';
-function showAuth(mode='login'){$$('dialog[open]').forEach(d=>d.close());visibleAccountBalances.clear();renderAccounts();$('#auth-screen').classList.remove('hidden');$('#app-shell').classList.add('hidden');$('#login-form').classList.toggle('hidden',mode!=='login');$('#register-form').classList.toggle('hidden',mode!=='register')}
+function showAuth(mode='login'){$$('dialog[open]').forEach(d=>d.close());window.AdminConsole?.stop();visibleAccountBalances.clear();renderAccounts();$('#auth-screen').classList.remove('hidden');$('#app-shell').classList.add('hidden');$('#login-form').classList.toggle('hidden',mode!=='login');$('#register-form').classList.toggle('hidden',mode!=='register')}
 function showApp(){$('#auth-screen').classList.add('hidden');$('#app-shell').classList.remove('hidden')}
 function renderProfileIdentity(){if(!state.profile)return;const name=state.profile.full_name||'',avatarUrl=state.profile.avatar_url||'',initialText=initials(name);$('.profile-mini b').textContent=name;$('.profile-mini small').textContent=state.profile.email.replace(/^(.{2}).*(@.*)$/,'$1***$2');$$('.profile-avatar,.profile-avatar-preview').forEach(element=>{element.textContent=avatarUrl?'':initialText;element.style.backgroundImage=avatarUrl?`url("${avatarUrl}")`:''})}
 function closeProfileMenu(){const menu=$('.profile-preferences'),restoreFocus=menu.contains(document.activeElement);menu.classList.add('hidden');$('.profile-more').setAttribute('aria-expanded','false');if(restoreFocus)$('.profile-more').focus()}
@@ -106,7 +106,7 @@ function openSupportDialog(){const form=$('#support-form');form.reset();formErro
 function toast(title=t('updated'),detail=''){const element=$('#toast');$('b',element).textContent=title;$('small',element).textContent=detail;element.classList.add('show');clearTimeout(window.toastTimer);window.toastTimer=setTimeout(()=>element.classList.remove('show'),3000)}
 function busy(b,on,label=t('loading')){if(!b)return;if(!b.dataset.labelVi)b.dataset.labelVi=b.textContent;b.disabled=on;b.textContent=on?label:(b.dataset.i18nBusyKey?t(b.dataset.i18nBusyKey):b.dataset.labelVi)}
 function formError(f,e=''){$('.form-error',f).textContent=e}
-async function bootstrap(){try{state.profile=await api('/profile');showApp();renderProfileIdentity();renderLiveHeader();applyAdminVisibility();if(isAdmin()){navigate('admin');await loadAdmin();return}navigate(location.hash.slice(1)||'dashboard');applyDataMonth(localMonthValue(),true);await Promise.all([loadAccounts(),loadCategories(),loadCategoryLogos(),applyLatestDataMonth()]);populateSelects();await Promise.all([loadDashboard(),loadTransactions(),loadBudgets(),loadAlerts(),loadChallenges(),loadStatistics(),loadImportHistory()]);window.Tour?.setUser(state.profile?.id);window.Tour?.maybeStart()}catch(e){if(e.status!==401)toast(t('init_failed'),e.message)}}
+async function bootstrap(){try{state.profile=await api('/profile');showApp();renderProfileIdentity();renderLiveHeader();applyAdminVisibility();if(isAdmin())return;navigate(location.hash.slice(1)||'dashboard');applyDataMonth(localMonthValue(),true);await Promise.all([loadAccounts(),loadCategories(),loadCategoryLogos(),applyLatestDataMonth()]);populateSelects();await Promise.all([loadDashboard(),loadTransactions(),loadBudgets(),loadAlerts(),loadChallenges(),loadStatistics(),loadImportHistory()]);window.Tour?.setUser(state.profile?.id);window.Tour?.maybeStart()}catch(e){if(e.status!==401)toast(t('init_failed'),e.message)}}
 async function loadAccounts(){const items=(await api('/accounts')).items;state.accounts=items.filter(x=>!x.archived);state.archivedAccounts=items.filter(x=>x.archived);renderAccounts()}
 async function loadCategories(){state.categories=(await api('/categories')).items.filter(x=>x.nature)}
 async function loadImportHistory(){try{state.importHistory=(await api('/imports/history')).items}catch{state.importHistory=[]}renderImportHistory()}
@@ -120,7 +120,7 @@ function renderImportHistory(){
   const pages=Math.ceil(items.length/IMPORT_HISTORY_PAGE_SIZE),page=Math.min(Math.max(1,state.importHistoryPage),pages),offset=(page-1)*IMPORT_HISTORY_PAGE_SIZE;
   state.importHistoryPage=page;
   const rows=items.slice(offset,offset+IMPORT_HISTORY_PAGE_SIZE).map(importHistoryRow).join('');
-  const pager=pages>1?`<div class="import-pagination"><span>${t('import_history_count',{total:items.length,page,pages})}</span><div><button type="button" data-import-history-page="${page-1}" ${page<=1?'disabled':''}>‹ ${t('previous_page')}</button><button type="button" data-import-history-page="${page+1}" ${page>=pages?'disabled':''}>${t('next_page')} ›</button></div></div>`:'';
+  const pager=pages>1?`<div class="pagination import-pagination"><span>${t('import_history_count',{total:items.length,page,pages})}</span><div><button type="button" data-import-history-page="${page-1}" ${page<=1?'disabled':''} aria-label="${esc(t('previous_page'))}">‹</button><button type="button" class="active" aria-current="page">${page}</button><button type="button" data-import-history-page="${page+1}" ${page>=pages?'disabled':''} aria-label="${esc(t('next_page'))}">›</button></div></div>`:'';
   box.innerHTML=`<div class="table-wrap"><table><thead><tr><th class="import-history-check"><input type="checkbox" id="import-history-select-all" aria-label="${t('select_all')}"></th><th>${t('import_file')}</th><th>${t('accounts')}</th><th>${t('imported_at')}</th><th>${t('imported_transactions')}</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>${pager}`;
   updateImportHistorySelection();
 }
@@ -346,7 +346,7 @@ function renderTransactionDateFilterState(){const active=Boolean($('#transaction
 function syncTransactionDateConstraints(){const dateFrom=$('#transaction-date-from'),dateTo=$('#transaction-date-to');dateFrom.max=dateTo.value;dateTo.min=dateFrom.value}
 async function loadTransactions(page=1){const range=selectedTransactionDateRange();if(!range){toast(t('invalid_transaction_date_range'));return false}const p=new URLSearchParams({page,per_page:TRANSACTIONS_PER_PAGE});if(range.dateFrom)p.set('date_from',range.dateFrom);if(range.dateTo)p.set('date_to',range.dateTo);if($('#transaction-account').value)p.set('account_id',$('#transaction-account').value);if($('#transaction-direction').value)p.set('direction',$('#transaction-direction').value);const d=await api(`/transactions?${p}`);state.transactions=d.items;renderTransactions(d);$('#recent-transactions').innerHTML=transactionRows(d.items.slice(0,5),false);return true}
 function transactionRows(items,controls=true){return items.length?items.map(x=>`<tr>${controls?'<td><input type="checkbox"></td>':''}<td>${dateVi(x.date)}</td><td class="amount ${x.direction==='IN'?'in':'out'}">${x.direction==='IN'?'+':'−'} ${money(x.amount)}</td><td><span class="tag">${esc(displayCategoryName(category(x.category_id)))}</span></td><td><span class="merchant-logo ${x.direction==='IN'?'green':''}">${x.direction==='IN'?'↗':'↘'}</span><b>${esc(x.description||t('no_description'))}</b></td><td>${esc(accountName(account(x.account_id)))}</td>${controls?`<td><button class="row-menu" data-delete-transaction="${x.id}">×</button></td>`:''}</tr>`).join(''):`<tr><td colspan="${controls?7:5}">${empty(t('no_transactions'),t('add_first_transaction'))}</td></tr>`}
-function renderTransactions(d){const q=$('#transaction-search').value.toLowerCase(),items=d.items.filter(x=>(x.description||'').toLowerCase().includes(q));$('#transaction-rows').innerHTML=transactionRows(items);$('.pagination>span').textContent=t('transaction_count',{total:d.total,page:d.page,pages:Math.max(d.pages,1)});$('.pagination>div').innerHTML=`<button data-page="${Math.max(1,d.page-1)}" ${d.page<=1?'disabled':''}>‹</button><button class="active">${d.page}</button><button data-page="${Math.min(d.pages,d.page+1)}" ${d.page>=d.pages?'disabled':''}>›</button>`}
+function renderTransactions(d){const q=$('#transaction-search').value.toLowerCase(),items=d.items.filter(x=>(x.description||'').toLowerCase().includes(q));$('#transaction-rows').innerHTML=transactionRows(items);$('.pagination>span').textContent=t('transaction_count',{total:d.total,page:d.page,pages:Math.max(d.pages,1)});$('.pagination>div').innerHTML=`<button data-page="${Math.max(1,d.page-1)}" ${d.page<=1?'disabled':''} aria-label="${esc(t('previous_page'))}">‹</button><button class="active" aria-current="page">${d.page}</button><button data-page="${Math.min(d.pages,d.page+1)}" ${d.page>=d.pages?'disabled':''} aria-label="${esc(t('next_page'))}">›</button>`}
 async function loadBudgets(){const [b,d]=await Promise.all([api(`/budgets?month=${state.month}`),api(`/statistics/dashboard?month=${state.month}`)]),total=b.items.reduce((s,x)=>s+x.amount,0),spent=d.expense,summary=$$('.budget-summary>div:not(.ring) strong'),rawPercent=total?spent/total*100:0,pct=Math.round(rawPercent),tone=budgetTone(budgetStatus(rawPercent)),ring=$('.ring');summary[0].textContent=money(total);summary[1].textContent=money(spent);summary[2].textContent=money(total-spent);summary[2].classList.remove('good-text','warning-text','danger-text');summary[2].classList.add(`${tone}-text`);ring.classList.remove('good','warning','danger');ring.classList.add(tone);ring.style.setProperty('--value',Math.min(pct,100));$('b',ring).textContent=`${pct}%`;const progress=Object.fromEntries(d.budget_progress.map(x=>[x.category_id,x]));$('#budget-cards').innerHTML=b.items.length?b.items.map(x=>{const c=category(x.category_id),name=displayCategoryName(c),p=progress[x.category_id]||{spent:0,percent:0,status:'GREEN'},tone=budgetTone(p.status),label=budgetLabel(p.status);return `<article class="category-card ${tone==='danger'?'danger-border':''}"><div>${categoryLogo(c)}<span><b>${esc(name)}</b><small>${natureLabel(c?.nature)}</small></span><button data-edit-budget="${x.category_id}" title="${esc(t('edit_budget'))}" aria-label="${esc(t('edit_budget_named',{name}))}">✎</button><button class="delete-budget" data-delete-budget="${x.id}" data-budget-name="${esc(name)}" title="${esc(t('delete_budget'))}" aria-label="${esc(t('delete_budget_named',{name}))}">🗑️</button></div><strong>${money(p.spent)} <small>/ ${money(x.amount)}</small></strong><div class="progress large"><i class="${tone}" data-fill="${Math.min(p.percent,100)}"></i></div><p><span class="${tone}-text">${label}</span><span>${p.percent}%</span></p></article>`}).join(''):empty(t('no_budget'),t('add_budget_hint'));applyFills($('#budget-cards'));applyLogoTints($('#budget-cards'));$('#budget-page-kicker').textContent=formatStatisticsMonth(state.month).toLocaleUpperCase(locale())}
 const natureLabel=n=>({COMMITTED:t('committed'),SEMI_FIXED:t('semi_fixed'),DISCRETIONARY:t('discretionary')}[n]||t('generic_category'));
 function filteredAlerts(){return state.alertFilter==='ALL'?state.alerts.filter(item=>item.status!=='DISMISSED'):state.alerts.filter(item=>item.status===state.alertFilter)}
@@ -469,7 +469,7 @@ function renderAccounts(){const hasArchived=state.archivedAccounts.length>0;$('#
 function confirmAccountDeletion(permanent=false){const dialog=$('#delete-account-dialog');$('#delete-account-title').textContent=t(permanent?'permanent_delete_title':'archive');$('#delete-account-message').textContent=t(permanent?'permanent_delete_confirm':'archive_confirm');$('#delete-account-confirm').textContent=t(permanent?'delete_forever':'archive');dialog.returnValue='cancel';dialog.showModal();return new Promise(resolve=>dialog.addEventListener('close',()=>resolve(dialog.returnValue==='confirm'),{once:true}))}
 function closeAccountDialogFromBackdrop(event){const dialog=event.currentTarget;if(event.target!==dialog)return;const rect=dialog.getBoundingClientRect(),outside=event.clientX<rect.left||event.clientX>rect.right||event.clientY<rect.top||event.clientY>rect.bottom;if(outside)dialog.close()}
 function openImportModal(){if($('#app-shell').classList.contains('hidden'))return;const dialog=$('#import-modal');if(dialog.open)return;state.importHistoryPage=1;renderImportHistory();dialog.showModal()}
-function navigate(id){if(isAdmin()&&id!=='admin')id='admin';else if(id==='admin'&&!isAdmin())id='dashboard';if(id==='import'){openImportModal();id='dashboard'}const target=document.getElementById(id)||$('#dashboard'),titles={dashboard:['dashboard','personal_finance'],transactions:['transactions','ledger'],import:['import_statement','safe_import'],budgets:['budgets','month_plan'],challenges:['challenges','behavior_change'],alerts:['alerts','finance_assistant'],statistics:['statistics','spending_analysis'],admin:['admin_console','system_operations']},labels=titles[target.id]||titles.dashboard;$$('.view').forEach(v=>v.classList.toggle('active',v===target));$$('.nav-item').forEach(l=>l.classList.toggle('active',l.dataset.view===target.id));$('#page-title').textContent=t(labels[0]);$('#page-kicker').textContent=t(labels[1]);$('#primary-nav').classList.remove('open');$('.menu-toggle')?.setAttribute('aria-expanded','false');window.scrollTo({top:0});if(location.hash!==`#${target.id}`)history.pushState(null,'',`#${target.id}`)}
+function navigate(id){if(isAdmin())return;if(id==='import'){openImportModal();id='dashboard'}const target=document.getElementById(id)||$('#dashboard'),titles={dashboard:['dashboard','personal_finance'],transactions:['transactions','ledger'],import:['import_statement','safe_import'],budgets:['budgets','month_plan'],challenges:['challenges','behavior_change'],alerts:['alerts','finance_assistant'],statistics:['statistics','spending_analysis']},labels=titles[target.id]||titles.dashboard;$$('.view').forEach(v=>v.classList.toggle('active',v===target));$$('.nav-item').forEach(l=>l.classList.toggle('active',l.dataset.view===target.id));$('#page-title').textContent=t(labels[0]);$('#page-kicker').textContent=t(labels[1]);$('#primary-nav').classList.remove('open');$('.menu-toggle')?.setAttribute('aria-expanded','false');window.scrollTo({top:0});if(location.hash!==`#${target.id}`)history.pushState(null,'',`#${target.id}`)}
 document.addEventListener('click',async e=>{const preferences=$('.profile-preferences'),more=e.target.closest('.profile-more');if(more){const opening=preferences.classList.contains('hidden');preferences.classList.toggle('hidden',!opening);more.setAttribute('aria-expanded',String(opening));if(opening)closeNotifications();return}if(!e.target.closest('.profile-mini')&&!preferences.classList.contains('hidden'))closeProfileMenu();if(e.target.closest('[data-theme-choice],[data-language]')&&e.target.closest('.profile-preferences'))closeProfileMenu();const go=e.target.closest('[data-go],[data-view]');if(go){e.preventDefault();navigate(go.dataset.go||go.dataset.view);return}if(e.target.closest('.menu-toggle')){const nav=$('#primary-nav'),open=!nav.classList.contains('open');nav.classList.toggle('open',open);$('.menu-toggle').setAttribute('aria-expanded',String(open));return}if(e.target.closest('[data-action="edit-profile"]')){openProfileDialog();return}if(e.target.closest('[data-action="change-password"]')){openPasswordDialog();return}if(e.target.closest('[data-action="add-transaction"]')){if(!state.accounts.length)return toast(t('need_account'),t('add_account_first'));$('[name="date"]',$('#transaction-form')).value=new Date().toISOString().slice(0,10);$('#transaction-modal').showModal();return}if(e.target.closest('[data-action="accounts"]')){closeProfileMenu();$('#accounts-modal').showModal();return}if(e.target.closest('[data-action="support"]')){openSupportDialog();return}const ownReportPageButton=e.target.closest('[data-own-report-page]');if(ownReportPageButton&&!ownReportPageButton.disabled){loadOwnSupportReports(Number(ownReportPageButton.dataset.ownReportPage));return}if(e.target.closest('[data-action="import"]')){openImportModal();return}const del=e.target.closest('[data-delete-transaction]');if(del&&confirm(t('delete_transaction_confirm'))){try{await api(`/transactions/${del.dataset.deleteTransaction}`,{method:'DELETE'});await refreshCore();toast(t('deleted_transaction'))}catch(x){toast(t('delete_failed'),x.message)}return}const page=e.target.closest('[data-page]');if(page){loadTransactions(Number(page.dataset.page));return}const status=e.target.closest('[data-alert-status]');if(status){status.disabled=true;try{await api(`/alerts/${status.dataset.alertId}`,{method:'PATCH',body:JSON.stringify({status:status.dataset.alertStatus})});await loadAlerts()}catch(error){toast(t('alert_update_failed'),error.message)}finally{if(status.isConnected)status.disabled=false}return}const filter=e.target.closest('[data-alert-filter]');if(filter){setAlertFilter(filter.dataset.alertFilter);return}const edit=e.target.closest('[data-edit-budget]');if(edit){setBudget(Number(edit.dataset.editBudget));return}const removeBudget=e.target.closest('[data-delete-budget]');if(removeBudget&&await confirmBudgetDeletion(removeBudget.dataset.budgetName)){removeBudget.disabled=true;try{await api(`/budgets/${removeBudget.dataset.deleteBudget}`,{method:'DELETE'});await Promise.all([loadBudgets(),loadDashboard()]);toast(t('deleted_budget'))}catch(error){toast(t('budget_delete_failed'),error.message)}finally{if(removeBudget.isConnected)removeBudget.disabled=false}}});
 document.addEventListener('error',event=>{const logo=event.target;if(!logo.matches?.('.bank-logo,.cat-logo'))return;logo.hidden=true;logo.nextElementSibling.hidden=false},true);
 document.addEventListener('click',async event=>{const button=event.target.closest('[data-challenge-action]');if(!button)return;button.disabled=true;try{await api(`/challenges/${button.dataset.challengeId}/respond`,{method:'POST',body:JSON.stringify({action:button.dataset.challengeAction})});await loadChallenges();if(button.dataset.challengeAction==='ACCEPT')navigate('challenges')}catch(error){toast(t('request_failed'),error.message)}finally{if(button.isConnected)button.disabled=false}});
@@ -572,7 +572,7 @@ function renderImportPreview(){
     <td colspan="6" class="import-error-detail"><b>${t('invalid_row')}</b><small>${esc(error.reason)}</small></td>
   </tr>`}));
   const tableRows=[...validEntries,...errorEntries].sort((left,right)=>left.rowNumber-right.rowNumber).map(entry=>entry.html).join('')||`<tr><td colspan="8">${t('no_importable_rows')}</td></tr>`;
-  const pagination=review.pages>1?`<div class="import-pagination"><span>${t('preview_page',{page:review.page,pages:review.pages,total:review.total})}</span><div><button type="button" data-import-page="${review.page-1}" ${review.page<=1?'disabled':''}>‹ ${t('previous_page')}</button><button type="button" data-import-page="${review.page+1}" ${review.page>=review.pages?'disabled':''}>${t('next_page')} ›</button></div></div>`:'';
+  const pagination=review.pages>1?`<div class="pagination import-pagination"><span>${t('preview_page',{page:review.page,pages:review.pages,total:review.total})}</span><div><button type="button" data-import-page="${review.page-1}" ${review.page<=1?'disabled':''} aria-label="${esc(t('previous_page'))}">‹</button><button type="button" class="active" aria-current="page">${review.page}</button><button type="button" data-import-page="${review.page+1}" ${review.page>=review.pages?'disabled':''} aria-label="${esc(t('next_page'))}">›</button></div></div>`:'';
   box.innerHTML=`<div class="panel-head"><div><p class="eyebrow">${t('preview_result')}</p><h2 id="import-preview-title">${t('rows_analyzed',{count:p.new+p.duplicate+p.error})}</h2></div><span class="pill positive">${t('unsaved_data')}</span></div><div class="preview-stats"><div><strong>${p.new}</strong><span>${t('new_transactions')}</span></div><div class="warn"><strong>${p.duplicate}</strong><span>${t('exact_duplicates')}</span></div><div class="warn"><strong>${p.probable_duplicate}</strong><span>${t('possible_duplicates')}</span></div><div class="bad"><strong>${p.error}</strong><span>${t('error_rows')}</span></div></div>${p.duplicate?`<div class="import-warning"><b>${t('duplicate_warning',{count:p.duplicate})}</b><span>${t('duplicate_warning_detail')}</span></div>`:''}${futureErrors.length?`<div class="import-warning danger"><b>${t('future_date_warning',{count:futureErrors.length})}</b><span>${futureErrors.map(x=>t('future_date_row',{row:x.row_number,reason:x.reason})).join(' · ')}</span></div>`:''}<div class="detection-summary ${detection.needs_review?'review':''}"><b>${detection.needs_review?t('review_mapping'):t('columns_detected')}</b><span>${t('header_row',{row:detection.header_row||1})} · ${t('detection_confidence',{percent:Math.round(Number(detection.confidence||0)*100)})}${detection.balance_verified?` · ${t('balance_verified')}`:''}</span>${columns?`<small>${columns}</small>`:''}</div><div class="import-selection-summary" id="import-selection-summary"></div><div class="table-wrap import-review"><table><thead><tr><th>${t('import_row_number')}</th><th>${t('import_decision')}</th><th>${t('transaction_date')}</th><th>${t('amount')}</th><th>${t('category')}</th><th>${t('transaction_column')}</th><th>${t('accounts')}</th><th>${t('row_note')}</th></tr></thead><tbody>${tableRows}</tbody></table></div>${pagination}<div class="import-actions">${p.error?`<a class="secondary-btn" href="/imports/${p.batch_id}/errors.csv">${t('download_error_report')}</a>`:''}<button type="button" class="secondary-btn" id="cancel-import-preview">${t('cancel_import')}</button><button type="button" class="secondary-btn" id="reset-import-edits">↶ ${t('cancel_edits')}</button><button class="primary-btn" id="confirm-import">${t('confirm_import',{count:rows.length})}</button></div>`;
   $('#confirm-import').addEventListener('click',confirmImport);updateImportDecisionSummary();if(!box.open)box.showModal();
 }
@@ -651,76 +651,12 @@ $('#notif-mark-all').addEventListener('click',async event=>{const button=event.c
 $('#logout').addEventListener('click',async event=>{const button=event.currentTarget,preferences=$('.profile-preferences');button.disabled=true;preferences.classList.add('hidden');$('.profile-more').setAttribute('aria-expanded','false');try{await api('/auth/logout',{method:'POST'});state.csrf='';state.profile=null;applyAdminVisibility();navigate('dashboard');if($('#accounts-modal').open)$('#accounts-modal').close();showAuth()}catch(e){toast(t('logout_failed'),e.message)}finally{button.disabled=false}});
 
 const isAdmin=()=>['ADMIN','SUPPORT_ADMIN'].includes(state.profile?.role);
-const isPrimaryAdmin=()=>state.profile?.role==='ADMIN';
-function adminStatusPill(status){return status==='LOCKED'?`<span class="pill negative">${t('locked')}</span>`:`<span class="pill positive">${t('active')}</span>`}
-function adminDate(value){return value?new Date(value).toLocaleDateString(locale()):'—'}
-async function loadAdminOperations(){
-  const target=$('#admin-operations');
-  try{
-    const data=await api('/admin/operations');
-    if(data.suppressed){target.innerHTML=`<article class="metric-card"><p>${t('metrics_suppressed')}</p><strong>${t('not_enough_users')}</strong><small>${esc(data.reason||'')}</small></article>`;return}
-    const rates=Object.entries(data.import_success_rate_by_bank||{});
-    target.innerHTML=`
-      <article class="metric-card accent"><div class="metric-head"><span class="metric-icon mint">◎</span></div><p>${t('active_users_30d')}</p><strong>${data.active_users}</strong><small>${t('last_30_days')}</small></article>
-      <article class="metric-card"><div class="metric-head"><span class="metric-icon blue">⇧</span></div><p>${t('import_success_rate')}</p><strong>${rates.length?`${rates[0][1]}%`:'—'}</strong><small>${esc(rates.map(([bank,rate])=>`${bank} ${rate}%`).join(' · '))||t('no_imports_yet')}</small></article>
-      <article class="metric-card"><div class="metric-head"><span class="metric-icon coral">!</span></div><p>${t('import_error_rows')}</p><strong>${data.error_count}</strong><small>${t('all_batches')}</small></article>
-      <article class="metric-card"><div class="metric-head"><span class="metric-icon violet">↻</span></div><p>${t('nightly_job')}</p><strong>${esc(data.nightly_job_status)}</strong><small>${t('last_run')}</small></article>`;
-  }catch(error){target.innerHTML=empty(t('load_failed'),error.message)}
-}
-async function loadAdminUsers(query='',page=1){
-  const body=$('#admin-user-rows');
-  try{
-    const params=new URLSearchParams({q:query,page:String(page),per_page:'10',status:$('#admin-user-status').value,role:'USER'}),data=await api(`/admin/users?${params}`);
-    if(page>1&&page>Math.max(data.pages,1))return loadAdminUsers(query,Math.max(data.pages,1));
-    state.adminUserPage=data.page;
-    body.innerHTML=data.items.length?data.items.map(user=>`<tr>
-      <td><b>${esc(user.full_name)}</b><br><small>${esc(user.email)}</small></td>
-      <td>${adminStatusPill(user.status)} ${user.role==='SUPPORT_ADMIN'?`<span class="pill neutral">${t('support_admin')}</span>`:''}${user.deletion_requested?` <span class="pill neutral">${t('deletion_requested')}</span>`:''}</td>
-      <td>${adminDate(user.registration_date)}</td><td>${adminDate(user.last_login)}</td>
-      <td class="admin-actions-cell"><div class="admin-row-actions">
-        ${user.role==='USER'?`<button class="secondary-btn" data-admin-action="${user.status==='LOCKED'?'unlock':'lock'}" data-admin-user="${user.id}">${user.status==='LOCKED'?t('unlock'):t('lock')}</button>
-        <button class="secondary-btn" data-admin-action="reset" data-admin-user="${user.id}">${t('reset_password')}</button>
-        ${user.deletion_requested?`<button class="secondary-btn" data-admin-action="erase" data-admin-user="${user.id}" data-admin-name="${esc(user.full_name)}">${t('execute_erasure')}</button>`:''}`:''}
-        ${user.can_manage_role?`<button class="secondary-btn" data-admin-action="role" data-admin-role="${user.role==='SUPPORT_ADMIN'?'USER':'SUPPORT_ADMIN'}" data-admin-user="${user.id}">${t(user.role==='SUPPORT_ADMIN'?'revoke_admin':'grant_support_admin')}</button>${user.role==='USER'?`<button class="danger-outline-btn" data-admin-action="violation-delete" data-admin-user="${user.id}" data-admin-name="${esc(user.full_name)}">${t('delete_violation')}</button>`:''}`:''}
-      </div></td></tr>`).join(''):`<tr><td colspan="5">${empty(t('no_users'),t('no_users_detail'))}</td></tr>`;
-    const pages=Math.max(data.pages,1);
-    $('#admin-user-page-info').textContent=t('admin_user_count',{total:data.total,page:data.page,pages});
-    $('#admin-user-page-buttons').innerHTML=`<button data-admin-page="${Math.max(1,data.page-1)}" ${data.page<=1?'disabled':''} aria-label="${t('previous_page')}">‹</button><button class="active" aria-current="page">${data.page}</button><button data-admin-page="${Math.min(pages,data.page+1)}" ${data.page>=pages?'disabled':''} aria-label="${t('next_page')}">›</button>`;
-  }catch(error){body.innerHTML=`<tr><td colspan="5">${empty(t('load_failed'),error.message)}</td></tr>`;$('#admin-user-page-info').textContent='—';$('#admin-user-page-buttons').innerHTML=''}
-}
-async function loadAdminImportConfig(){
-  const body=$('#admin-import-rows');
-  try{
-    const data=await api('/admin/import-config');
-    const rows=[...data.templates.map(item=>({kind:'template',id:item.id,label:`${item.bank_code} — ${item.name}`,detail:t('bank_template'),active:item.active})),
-                ...data.rules.map(item=>({kind:'rule',id:item.id,label:`#${item.priority}`,detail:item.pattern,active:item.active}))];
-    body.innerHTML=rows.map(row=>`<tr><td><b>${esc(row.label)}</b></td><td><small>${esc(row.detail)}</small></td>
-      <td><button class="secondary-btn" data-admin-toggle="${row.kind}" data-admin-id="${row.id}" data-admin-active="${row.active?'1':'0'}">${row.active?t('on'):t('off')}</button></td></tr>`).join('');
-  }catch(error){body.innerHTML=`<tr><td colspan="3">${empty(t('load_failed'),error.message)}</td></tr>`}
-}
-async function loadAdminAuditLogs(){
-  const target=$('#admin-audit-list');
-  try{
-    const data=await api('/admin/audit-logs');
-    target.innerHTML=data.items.length?data.items.slice(0,12).map(item=>`<div class="budget-row"><span class="cat-icon travel">≡</span><div><b>${esc(item.action)}</b><small>${new Date(item.created_at).toLocaleString(locale())}</small></div><span></span></div>`).join(''):empty(t('no_audit_logs'),t('no_audit_logs_detail'));
-  }catch(error){target.innerHTML=empty(t('load_failed'),error.message)}
-}
-let supportAdminPage=1;
-async function loadSupportAdmins(page=1){
-  if(!isPrimaryAdmin())return;
-  const body=$('#support-admin-rows'),pager=$('#support-admin-pagination');
-  try{
-    const params=new URLSearchParams({q:$('#support-admin-search').value.trim(),role:'SUPPORT_ADMIN',page:String(page),per_page:'10'});
-    const data=await api(`/admin/users?${params}`),pages=Math.max(data.pages,1);
-    if(page>pages)return loadSupportAdmins(pages);
-    supportAdminPage=data.page;
-    body.innerHTML=data.items.length?data.items.map(user=>`<tr><td><b>${esc(user.full_name)}</b><br><small>${esc(user.email)}</small></td><td>${adminStatusPill(user.status)}</td><td>${adminDate(user.registration_date)}</td><td>${adminDate(user.last_login)}</td><td>${user.can_manage_role?`<button class="secondary-btn" data-admin-action="role" data-admin-role="USER" data-admin-user="${user.id}">${t('revoke_admin')}</button>`:''}</td></tr>`).join(''):`<tr><td colspan="5">${empty(t('no_users'),t('no_users_detail'))}</td></tr>`;
-    pager.innerHTML=`<span>${t('admin_user_count',{total:data.total,page:data.page,pages})}</span><div><button data-support-page="${page-1}" ${page<=1?'disabled':''} aria-label="${t('previous_page')}">‹</button><button class="active" aria-current="page">${page}</button><button data-support-page="${page+1}" ${page>=pages?'disabled':''} aria-label="${t('next_page')}">›</button></div>`;
-  }catch(error){body.innerHTML=`<tr><td colspan="5">${empty(t('load_failed'),error.message)}</td></tr>`;pager.innerHTML=''}
-}
-// User-to-admin reports (FR support desk). The list a user sees is their own
-// (/support-reports); the admin table is /admin/support-reports, which SUPPORT_ADMIN
-// may also read — so the panel lives outside the primary-admin-only block.
+// Everything admin.js is allowed to reach into. Keeping it to one object stops the
+// console from growing a dependency on member-app rendering state.
+const AppBridge={api,esc,toast,logout:()=>$('#logout').click(),get profile(){return state.profile}};
+// User-to-admin reports (FR-45). Only the sender's own list lives here; the
+// admin desk that reads /admin/support-reports is part of the console in
+// admin.js, because SUPPORT_ADMIN reaches it from the Users page.
 const supportStatusPill=status=>status==='RESOLVED'?`<span class="pill positive">${t('support_status_resolved')}</span>`:`<span class="pill neutral">${t('support_status_open')}</span>`;
 const supportDateTime=value=>value?new Date(value).toLocaleString(locale()):'—';
 function pagerButtons(page,pages,attribute){return `<div><button type="button" data-${attribute}="${page-1}" ${page<=1?'disabled':''} aria-label="${t('previous_page')}">‹</button><button type="button" class="active" aria-current="page">${page}</button><button type="button" data-${attribute}="${page+1}" ${page>=pages?'disabled':''} aria-label="${t('next_page')}">›</button></div>`}
@@ -735,26 +671,6 @@ async function loadOwnSupportReports(page=1){
     pager.innerHTML=data.total?`<span>${t('support_report_count',{total:data.total,page:data.page,pages})}</span>${pagerButtons(data.page,pages,'own-report-page')}`:'';
   }catch(error){body.innerHTML=empty(t('load_failed'),error.message);pager.innerHTML=''}
 }
-let adminReportPage=1;
-async function loadAdminSupportReports(page=1){
-  if(!isAdmin())return;
-  const body=$('#support-report-rows'),pager=$('#support-report-admin-pagination');
-  try{
-    const params=new URLSearchParams({status:$('#support-report-status').value,page:String(page),per_page:'10'});
-    const data=await api(`/admin/support-reports?${params}`),pages=Math.max(data.pages,1);
-    if(page>pages)return loadAdminSupportReports(pages);
-    adminReportPage=data.page;
-    body.innerHTML=data.items.length?data.items.map(item=>`<tr>
-      <td><b>${esc(item.user.full_name)}</b><br><small>${esc(item.user.email)}</small></td>
-      <td>${esc(item.subject)}</td>
-      <td class="support-message-cell">${esc(item.message)}</td>
-      <td>${supportDateTime(item.created_at)}</td>
-      <td>${supportStatusPill(item.status)}</td>
-      <td><button class="secondary-btn" data-report-action data-report-id="${item.id}" data-report-status="${item.status==='RESOLVED'?'OPEN':'RESOLVED'}">${t(item.status==='RESOLVED'?'reopen_report':'mark_resolved')}</button></td></tr>`).join(''):`<tr><td colspan="6">${empty(t('no_admin_support_reports'),t('no_admin_support_reports_detail'))}</td></tr>`;
-    pager.innerHTML=`<span>${t('support_report_count',{total:data.total,page:data.page,pages})}</span>${pagerButtons(data.page,pages,'report-page')}`;
-  }catch(error){body.innerHTML=`<tr><td colspan="6">${empty(t('load_failed'),error.message)}</td></tr>`;pager.innerHTML=''}
-}
-$('#support-report-status').addEventListener('change',()=>loadAdminSupportReports(1));
 $('#support-form').addEventListener('submit',async event=>{
   event.preventDefault();
   const form=event.currentTarget,button=$('#send-support-report'),data=Object.fromEntries(new FormData(form));
@@ -768,8 +684,20 @@ $('#support-form').addEventListener('submit',async event=>{
   }catch(error){formError(form,error.message);toast(t('support_send_failed'),error.message)}
   finally{button.disabled=false;button.removeAttribute('aria-busy')}
 });
-async function loadAdmin(){if(!isAdmin())return;const tasks=[loadAdminUsers($('#admin-user-search').value.trim()),loadAdminSupportReports(adminReportPage)];if(isPrimaryAdmin())tasks.push(loadSupportAdmins(),loadAdminOperations(),loadAdminImportConfig(),loadAdminAuditLogs());await Promise.all(tasks)}
-function applyAdminVisibility(){const admin=isAdmin();$$('.admin-only').forEach(node=>node.classList.toggle('hidden',!admin));$$('.primary-admin-only').forEach(node=>node.classList.toggle('hidden',!isPrimaryAdmin()));$$('.nav-item:not(.admin-only),.view:not(#admin),[data-action="add-transaction"],[data-action="accounts"],[data-action="import"],[data-action="support"]').forEach(node=>node.classList.toggle('hidden',admin))}
+function applyAdminVisibility(){
+  // An admin never uses the member shell: the console replaces it wholesale
+  // rather than rendering every member view and then hiding it item by item.
+  const admin=isAdmin();
+  if(admin&&!window.AdminConsole){
+    // Hiding the member shell before knowing the console can take over would
+    // leave a blank page — the exact failure a stale cached app.js produces.
+    toast(t('init_failed'),t('admin_console_missing'));
+    return;
+  }
+  $('#app-shell').classList.toggle('hidden',admin);
+  if(admin)window.AdminConsole.start(AppBridge,state.profile);
+  else window.AdminConsole?.stop();
+}
 
 async function refreshCore(){await Promise.all([loadAccounts(),loadTransactions(),loadDashboard(),loadBudgets(),loadAlerts(),loadChallenges(),loadStatistics()])}
 $('#statistics-period').addEventListener('change',renderTrend);
@@ -782,54 +710,9 @@ function restoreStatisticsBreakdownSelection(){const dateFrom=$('#statistics-dat
 $('#statistics-range-form').addEventListener('submit',async event=>{event.preventDefault();const dateFromInput=$('#statistics-date-from'),dateToInput=$('#statistics-date-to'),selectedDateFrom=dateFromInput.value,selectedDateTo=dateToInput.value,range=statisticsDateRange(selectedDateFrom,selectedDateTo),button=$('#apply-statistics-range');clearStatisticsDateValidity();if(!range){state.statisticsBreakdownRequest+=1;state.statisticsDateFrom=state.statisticsRenderedDateFrom;state.statisticsDateTo=state.statisticsRenderedDateTo;dateToInput.setCustomValidity(t('invalid_statistics_date_range'));dateToInput.reportValidity();toast(t('invalid_statistics_date_range'));return}state.statisticsDateFrom=selectedDateFrom;state.statisticsDateTo=selectedDateTo;busy(button,true);try{await Promise.all([loadStatisticsBreakdown(),loadStatisticsTrend()])}catch(error){if(state.statisticsDateFrom===selectedDateFrom&&state.statisticsDateTo===selectedDateTo){restoreStatisticsBreakdownSelection();toast(t('statistics_load_failed'),error.message)}}finally{busy(button,false)}});
 ['#statistics-date-from','#statistics-date-to'].forEach(selector=>$(selector).addEventListener('input',clearStatisticsDateValidity));
 window.addEventListener('languagechange',async()=>{clearStatisticsDateValidity();navigate(location.hash.slice(1)||'dashboard');renderLiveHeader();populateSelects();renderAccounts();renderChallenges();analysisButton.textContent=t('spending_analysis_title');if($('#budget-dialog').open)renderBudgetDialogLanguage();if(file.files.length)file.dispatchEvent(new Event('change'));if(state.importPreview)renderImportPreview();renderImportHistory();if($('#support-dialog').open)await loadOwnSupportReports(ownReportPage);if(isAdmin()){await loadAdmin();return}if(state.profile)await Promise.all([loadDashboard(),loadTransactions(),loadBudgets(),loadAlerts(),loadChallenges(),loadStatistics()])});
-async function refreshRealtimeData(){if(!state.profile||document.hidden||state.realtimeRefresh)return;if(isAdmin()){await Promise.all([loadAdminOperations(),loadAdminSupportReports(adminReportPage)]);return}state.realtimeRefresh=true;try{await Promise.all([loadAccounts(),loadDashboard(),loadTransactions(),loadBudgets(),loadAlerts(),loadChallenges()])}catch(error){if(error.status===401)state.profile=null}finally{state.realtimeRefresh=false}}
+async function refreshRealtimeData(){if(!state.profile||document.hidden||state.realtimeRefresh)return;if(isAdmin()){window.AdminConsole.refresh();return}state.realtimeRefresh=true;try{await Promise.all([loadAccounts(),loadDashboard(),loadTransactions(),loadBudgets(),loadAlerts(),loadChallenges()])}catch(error){if(error.status===401)state.profile=null}finally{state.realtimeRefresh=false}}
 setInterval(renderLiveHeader,60000);setInterval(refreshRealtimeData,60000);document.addEventListener('visibilitychange',()=>{renderLiveHeader();if(!document.hidden)refreshRealtimeData()});
 
-async function adminConfirm(message){const dialog=$('#admin-confirm-dialog');$('#admin-confirm-message').textContent=message;dialog.showModal();return new Promise(resolve=>dialog.addEventListener('close',()=>resolve(dialog.returnValue==='confirm'),{once:true}))}
-document.addEventListener('click',async event=>{
-  const supportPageButton=event.target.closest('[data-support-page]');
-  if(supportPageButton&&!supportPageButton.disabled){await loadSupportAdmins(Number(supportPageButton.dataset.supportPage));return}
-  const pageButton=event.target.closest('[data-admin-page]');
-  if(pageButton){await loadAdminUsers($('#admin-user-search').value.trim(),Number(pageButton.dataset.adminPage));return}
-  const reportPageButton=event.target.closest('[data-report-page]');
-  if(reportPageButton&&!reportPageButton.disabled){await loadAdminSupportReports(Number(reportPageButton.dataset.reportPage));return}
-  const reportAction=event.target.closest('[data-report-action]');
-  if(reportAction){
-    const nextStatus=reportAction.dataset.reportStatus;
-    reportAction.disabled=true;
-    try{await api(`/admin/support-reports/${reportAction.dataset.reportId}`,{method:'PATCH',body:JSON.stringify({status:nextStatus})});await loadAdminSupportReports(adminReportPage);toast(t(nextStatus==='RESOLVED'?'support_report_resolved':'support_report_reopened'))}
-    catch(error){toast(t('support_report_update_failed'),error.message);if(reportAction.isConnected)reportAction.disabled=false}
-    return;
-  }
-  const toggle=event.target.closest('[data-admin-toggle]');
-  if(toggle){
-    toggle.disabled=true;
-    try{await api(`/admin/import-config/${toggle.dataset.adminToggle}/${toggle.dataset.adminId}`,{method:'PATCH',body:JSON.stringify({active:toggle.dataset.adminActive!=='1'})});await loadAdminImportConfig()}
-    catch(error){toast(t('update_failed'),error.message);if(toggle.isConnected)toggle.disabled=false}
-    return;
-  }
-  const action=event.target.closest('[data-admin-action]');
-  if(!action)return;
-  const userId=action.dataset.adminUser,kind=action.dataset.adminAction;
-  if(kind==='erase'&&!await adminConfirm(t('confirm_erasure',{name:action.dataset.adminName||''})))return;
-  if(kind==='violation-delete'&&!await adminConfirm(t('confirm_violation_delete',{name:action.dataset.adminName||''})))return;
-  action.disabled=true;
-  try{
-    if(kind==='lock'||kind==='unlock'){await api(`/admin/users/${userId}/${kind}`,{method:'POST'});toast(kind==='lock'?t('user_locked'):t('user_unlocked'))}
-    else if(kind==='reset'){const data=await api(`/admin/users/${userId}/reset-password`,{method:'POST'});toast(t('temporary_password'),data.temporary_password)}
-    else if(kind==='erase'){await api(`/admin/users/${userId}`,{method:'DELETE'});toast(t('erasure_done'))}
-    else if(kind==='role'){await api(`/admin/users/${userId}/role`,{method:'PATCH',body:JSON.stringify({role:action.dataset.adminRole})});toast(t(action.dataset.adminRole==='SUPPORT_ADMIN'?'admin_granted':'admin_revoked'))}
-    else if(kind==='violation-delete'){await api(`/admin/users/${userId}/violation`,{method:'DELETE'});toast(t('violation_deleted'))}
-    await loadAdminUsers($('#admin-user-search').value.trim(),state.adminUserPage);
-    if(kind==='role')await loadSupportAdmins(supportAdminPage);
-  }catch(error){toast(t('action_failed'),error.message)}
-  finally{if(action.isConnected)action.disabled=false}
-});
-let adminSearchTimer;
-$('#admin-user-search').addEventListener('input',event=>{clearTimeout(adminSearchTimer);const value=event.target.value.trim();adminSearchTimer=setTimeout(()=>loadAdminUsers(value,1),250)});
-$('#admin-user-status').addEventListener('change',()=>loadAdminUsers($('#admin-user-search').value.trim(),1));
-let supportSearchTimer;
-$('#support-admin-search').addEventListener('input',()=>{clearTimeout(supportSearchTimer);supportSearchTimer=setTimeout(()=>loadSupportAdmins(1),250)});
 const importPreviewBox=$('#import-preview');
 importPreviewBox.addEventListener('click',async event=>{
   if(event.target===importPreviewBox){

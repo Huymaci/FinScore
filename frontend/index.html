@@ -5,8 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Prototype giao diện SmartFinance - quản lý tài chính cá nhân">
   <title>SmartFinance — Tài chính rõ ràng, mỗi ngày</title>
-  <script src="theme.js?v=10"></script>
-  <link rel="stylesheet" href="styles.css?v=10">
+  <script src="theme.js?v=11"></script>
+  <link rel="stylesheet" href="styles.css?v=11">
+  <link rel="stylesheet" href="admin.css?v=11">
 </head>
 <body>
   <section class="auth-screen" id="auth-screen" aria-label="Đăng nhập SmartFinance">
@@ -28,7 +29,6 @@
       <a class="nav-item" href="#budgets" data-view="budgets">Ngân sách</a>
       <a class="nav-item" href="#challenges" data-view="challenges">Thử thách</a>
       <a class="nav-item" href="#statistics" data-view="statistics">Thống kê</a>
-      <a class="nav-item admin-only hidden" href="#admin" data-view="admin">Quản trị</a>
     </nav>
     <div class="breadcrumb hidden"><span id="page-kicker">Tài chính cá nhân</span><b id="page-title">Tổng quan</b></div>
     <div class="top-actions">
@@ -147,43 +147,9 @@
       <article class="panel trend"><div class="panel-head"><div><p class="eyebrow">XU HƯỚNG</p><h2>Thu nhập và chi tiêu</h2></div><div class="trend-tools"><div class="legend"><span><i class="income-dot"></i>Thu nhập</span><span><i class="expense-dot"></i>Chi tiêu</span></div><label class="statistics-control"><span>Khoảng xu hướng</span><select id="statistics-period"><option value="6">6 tháng gần nhất</option><option value="12" selected>12 tháng gần nhất</option></select></label></div></div><div class="chart"><div class="y-labels"><span>0</span><span>0</span><span>0</span><span>0</span><span>0</span></div><div class="chart-area"><i></i><i></i><i></i><i></i><i></i><svg class="trend-chart" viewBox="0 0 700 220" preserveAspectRatio="none" aria-label="12 tháng gần nhất"><polyline class="income-line" points=""/><polyline class="expense-line" points=""/></svg><div class="x-labels"></div></div></div></article></div>
     </section>
 
-    <section class="view" id="admin" data-title="Quản trị" data-kicker="Vận hành hệ thống">
-      <div class="page-heading"><div><p class="eyebrow" id="admin-kicker">CÔNG CỤ QUẢN TRỊ</p><h1 id="admin-title">Quản trị hệ thống</h1><p id="admin-subtitle">Chỉ siêu dữ liệu tài khoản. Không hiển thị số dư hay giao dịch của người dùng.</p></div></div>
-
-      <div class="metric-grid primary-admin-only" id="admin-operations"></div>
-
-      <article class="panel">
-        <div class="panel-head"><div><p class="eyebrow" id="admin-users-kicker">QUẢN LÝ NGƯỜI DÙNG</p><h2 id="admin-users-title">Quản lý người dùng</h2></div></div>
-        <div class="filters admin-user-filters"><div class="search-box"><span aria-hidden="true">⌕</span><input id="admin-user-search" type="search" placeholder="Tìm theo email hoặc họ tên" aria-label="Tìm người dùng theo email hoặc họ tên"></div><select id="admin-user-status" aria-label="Lọc trạng thái"><option value="ALL">Tất cả trạng thái</option><option value="ACTIVE">Đang hoạt động</option><option value="LOCKED">Đã khóa</option></select></div>
-        <div class="table-wrap"><table><thead><tr><th id="admin-th-user">Người dùng</th><th id="admin-th-status">Trạng thái</th><th id="admin-th-registered">Ngày đăng ký</th><th id="admin-th-login">Đăng nhập gần nhất</th><th id="admin-th-actions">Thao tác</th></tr></thead><tbody id="admin-user-rows"></tbody></table></div>
-        <div class="pagination admin-user-pagination"><span id="admin-user-page-info">—</span><div id="admin-user-page-buttons"></div></div>
-      </article>
-
-      <article class="panel" id="support-report-panel">
-        <div class="panel-head"><div><p class="eyebrow">GÓP Ý NGƯỜI DÙNG</p><h2>Góp ý từ người dùng</h2><p>Xem và xử lý góp ý do người dùng gửi.</p></div></div>
-        <div class="filters"><select id="support-report-status" aria-label="Lọc trạng thái góp ý"><option value="ALL">Tất cả trạng thái</option><option value="OPEN">Chưa xử lý</option><option value="RESOLVED">Đã giải quyết</option></select></div>
-        <div class="table-wrap"><table><thead><tr><th>Người dùng</th><th>Tiêu đề</th><th>Nội dung</th><th>Ngày gửi</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody id="support-report-rows"></tbody></table></div>
-        <div class="pagination admin-user-pagination" id="support-report-admin-pagination"></div>
-      </article>
-
-      <div class="dashboard-grid primary-admin-only">
-        <article class="panel" id="support-admin-panel">
-          <div class="panel-head"><div><p class="eyebrow">QUẢN LÝ QUYỀN</p><h2>Admin hỗ trợ</h2><p>Danh sách quản trị viên hỗ trợ và quyền truy cập của họ.</p></div></div>
-          <div class="filters"><div class="search-box"><span aria-hidden="true">⌕</span><input id="support-admin-search" type="search" placeholder="Tìm theo email hoặc họ tên" aria-label="Tìm admin hỗ trợ"></div></div>
-          <div class="table-wrap"><table><thead><tr><th>Người dùng</th><th>Trạng thái</th><th>Ngày đăng ký</th><th>Đăng nhập gần nhất</th><th>Thao tác</th></tr></thead><tbody id="support-admin-rows"></tbody></table></div>
-          <div class="pagination admin-user-pagination" id="support-admin-pagination"></div>
-        </article>
-        <article class="panel">
-          <div class="panel-head"><div><p class="eyebrow" id="admin-import-kicker">CẤU HÌNH NHẬP LIỆU</p><h2 id="admin-import-title">Mẫu ngân hàng &amp; luật phân loại</h2></div></div>
-          <div class="table-wrap"><table><thead><tr><th id="admin-th-config">Mục</th><th id="admin-th-detail">Chi tiết</th><th id="admin-th-active">Bật</th></tr></thead><tbody id="admin-import-rows"></tbody></table></div>
-        </article>
-        <article class="panel">
-          <div class="panel-head"><div><p class="eyebrow" id="admin-audit-kicker">NHẬT KÝ</p><h2 id="admin-audit-title">Audit log</h2></div></div>
-          <div id="admin-audit-list" class="budget-list"></div>
-        </article>
-      </div>
-    </section>
   </main></div>
+
+  <div id="admin-console" class="admin-console hidden"></div>
 
   <dialog id="import-modal" class="import-modal" aria-labelledby="import-modal-title">
     <div class="import-modal-head">
@@ -228,11 +194,13 @@
   <dialog id="delete-history-dialog" class="confirm-dialog delete-history-dialog" aria-labelledby="delete-history-title" aria-describedby="delete-history-message"><form method="dialog"><div class="confirm-icon" aria-hidden="true">!</div><h2 id="delete-history-title">Xóa lịch sử nhập?</h2><p id="delete-history-message"></p><footer><button class="secondary-btn" value="cancel" autofocus>Hủy</button><button class="danger-outline-btn" id="delete-history-keep" value="history">Chỉ xóa lịch sử</button><button class="danger-btn" id="delete-history-all" value="all">Xóa cả giao dịch</button></footer></form></dialog>
   <dialog id="remove-import-dialog" class="confirm-dialog" aria-labelledby="remove-import-title" aria-describedby="remove-import-message"><form method="dialog"><div class="confirm-icon" aria-hidden="true">!</div><h2 id="remove-import-title">Xóa giao dịch đã nhập?</h2><p id="remove-import-message"></p><footer><button class="secondary-btn" id="remove-import-cancel" value="cancel" autofocus>Hủy</button><button class="danger-btn" id="remove-import-confirm" value="confirm">Xóa giao dịch</button></footer></form></dialog>
   <dialog id="delete-budget-dialog" class="confirm-dialog" aria-labelledby="delete-budget-title" aria-describedby="delete-budget-message"><form method="dialog"><div class="confirm-icon" aria-hidden="true">!</div><h2 id="delete-budget-title">Xóa ngân sách?</h2><p id="delete-budget-message"></p><footer><button class="secondary-btn" id="delete-budget-cancel" value="cancel" autofocus>Hủy</button><button class="danger-btn" id="delete-budget-confirm" value="confirm">Xóa hạn mức</button></footer></form></dialog>
-  <dialog id="admin-confirm-dialog" class="confirm-dialog" aria-labelledby="admin-confirm-title" aria-describedby="admin-confirm-message"><form method="dialog"><div class="confirm-icon" aria-hidden="true">!</div><h2 id="admin-confirm-title">Xác nhận</h2><p id="admin-confirm-message"></p><footer><button class="secondary-btn" value="cancel" autofocus>Hủy</button><button class="danger-btn" value="confirm">Xác nhận</button></footer></form></dialog>
+  <dialog id="adm-confirm-dialog" class="confirm-dialog" aria-labelledby="adm-confirm-title" aria-describedby="adm-confirm-message"><form method="dialog"><div class="confirm-icon" aria-hidden="true">!</div><h2 id="adm-confirm-title">Xác nhận</h2><p id="adm-confirm-message"></p><label id="adm-confirm-field" class="hidden">Gõ <b id="adm-confirm-phrase"></b> để xác nhận:<input id="adm-confirm-input" class="adm-confirm-input" type="text" autocomplete="off"></label><footer><button class="secondary-btn" value="cancel" autofocus>Hủy</button><button class="danger-btn" id="adm-confirm-submit" value="confirm">Xác nhận</button></footer></form></dialog>
+  <dialog id="adm-secret-dialog" class="confirm-dialog" aria-labelledby="adm-secret-title"><form method="dialog"><div class="confirm-icon" aria-hidden="true">✓</div><h2 id="adm-secret-title">Mật khẩu tạm thời</h2><p id="adm-secret-note"></p><p class="adm-secret"><code id="adm-secret-value"></code></p><footer><button class="primary-btn" value="close" autofocus>Đã hiểu</button></footer></form></dialog>
   <div class="toast" id="toast" role="status"><span>✓</span><p><b>Đã cập nhật</b><small>Thao tác demo đã hoàn tất.</small></p></div>
-  <script src="i18n.js?v=10"></script>
-  <script src="app.js?v=10"></script>
-  <script src="bank-picker.js?v=10"></script>
-  <script src="tour.js?v=1"></script>
+  <script src="i18n.js?v=11"></script>
+  <script src="app.js?v=11"></script>
+  <script src="bank-picker.js?v=11"></script>
+  <script src="admin.js?v=11"></script>
+  <script src="tour.js?v=11"></script>
 </body>
 </html>

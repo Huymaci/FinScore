@@ -1,11 +1,14 @@
 import os
+import time
 
-from flask import Flask, jsonify
+from flask import Flask, g, jsonify, request
+from flask_login import current_user
 
 from config import Config
 
 from .errors import register_error_handlers
 from .extensions import csrf, db, limiter, login_manager, talisman
+from .services import metrics
 
 
 def create_app(config_object=Config):
@@ -68,6 +71,28 @@ def create_app(config_object=Config):
 
     for blueprint in (auth_bp, profile_bp, accounts_bp, categories_bp, transactions_bp, imports_bp, budgets_bp, alerts_bp, challenges_bp, statistics_bp, support_bp, admin_bp, ui_bp):
         app.register_blueprint(blueprint)
+
+    # FR-50: the admin console reports request volume, latency and recent API
+    # failures. Both hooks stay off the database so a page load never pays for
+    # an extra write; see app/services/metrics.py for the trade-off.
+    @app.before_request
+    def start_request_timer():
+        g.request_started_at = time.perf_counter()
+
+    @app.after_request
+    def record_request_metrics(response):
+        started = g.pop("request_started_at", None)
+        if started is None or request.endpoint == "static":
+            return response
+        rule = request.url_rule.rule if request.url_rule else request.path
+        metrics.record_request(request.method, rule, response.status_code, (time.perf_counter() - started) * 1000)
+        if response.status_code >= 400:
+            payload = response.get_json(silent=True) if response.is_json else None
+            # NFR-10: only the generic message we already returned to the
+            # caller is kept, never the request body or a stack trace.
+            actor = current_user.id if current_user and current_user.is_authenticated else None
+            metrics.record_error(request.method, rule, response.status_code, (payload or {}).get("error", ""), actor)
+        return response
 
     @login_manager.unauthorized_handler
     def unauthorized():

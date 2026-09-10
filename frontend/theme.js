@@ -88,6 +88,9 @@
 
   window.Theme = {
     setTheme,
+    // The admin console builds its own topbar after load, so the toggle it
+    // creates needs its icon and aria-pressed state filled in on demand.
+    refreshControls: renderControls,
     toggle: () => setTheme(effectiveTheme() === DARK ? LIGHT : DARK),
     get current() { return effectiveTheme(); },
     get preference() { return preference; },

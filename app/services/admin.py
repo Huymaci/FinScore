@@ -5,7 +5,7 @@ from sqlalchemy import case, func, or_, select
 from werkzeug.security import generate_password_hash
 
 from app.extensions import db
-from app.models import AuditLog, ImportBatch, ImportError, ImportTemplate, User, utcnow
+from app.models import Alert, AuditLog, Category, ImportBatch, ImportError, ImportTemplate, Transaction, User, utcnow
 
 from .auth import validate_password
 from .common import ValidationError, money
@@ -104,3 +104,201 @@ def operations():
 
 def audit_logs(page=1, per_page=50):
     return db.paginate(select(AuditLog).order_by(AuditLog.created_at.desc()), page=page, per_page=per_page, error_out=False)
+
+
+# --- Operational status (FR-50) -------------------------------------------
+# Everything below reports on the system, never on a person's finances: no
+# amount, description, merchant or balance is read here (FR-51, NFR-09).
+
+_COUNTED_TABLES = ("users", "accounts", "transactions", "budgets", "alerts",
+                   "import_batches", "import_errors", "audit_logs", "support_reports")
+
+
+def _database_status():
+    from sqlalchemy import text
+    started = datetime.now()
+    dialect = db.engine.dialect.name
+    try:
+        db.session.execute(text("SELECT 1"))
+        connected = True
+    except Exception:
+        return {"connected": False, "dialect": dialect, "response_ms": None,
+                "size_bytes": None, "rows": None, "version": None, "tables": []}
+    response_ms = round((datetime.now() - started).total_seconds() * 1000, 1)
+
+    size_bytes, version = None, None
+    try:
+        if dialect == "mysql":
+            version = db.session.scalar(text("SELECT VERSION()"))
+            size_bytes = db.session.scalar(text(
+                "SELECT SUM(data_length + index_length) FROM information_schema.tables "
+                "WHERE table_schema = DATABASE()"))
+        elif dialect == "sqlite":
+            version = f"SQLite {db.session.scalar(text('SELECT sqlite_version()'))}"
+            size_bytes = (db.session.scalar(text("PRAGMA page_count")) or 0) * (db.session.scalar(text("PRAGMA page_size")) or 0)
+    except Exception:
+        size_bytes = None
+
+    tables, rows = [], 0
+    for name in _COUNTED_TABLES:
+        try:
+            count = db.session.scalar(text(f"SELECT COUNT(*) FROM {name}")) or 0
+        except Exception:
+            continue
+        tables.append({"name": name, "rows": count})
+        rows += count
+    return {"connected": connected, "dialect": dialect, "version": version,
+            "response_ms": response_ms, "size_bytes": int(size_bytes) if size_bytes else None,
+            "rows": rows, "tables": tables}
+
+
+def _auth_status():
+    """Failed sign-ins and locked accounts over the last 24 hours."""
+    since = utcnow() - timedelta(hours=24)
+    failed = db.session.scalar(
+        select(func.count()).select_from(AuditLog)
+        .where(AuditLog.action.like("LOGIN_FAILED:%"), AuditLog.created_at >= since)) or 0
+    lockouts = db.session.scalar(
+        select(func.count()).select_from(AuditLog)
+        .where(AuditLog.action.like("LOGIN_FAILED:%:LOCKED"), AuditLog.created_at >= since)) or 0
+    locked_now = db.session.scalar(
+        select(func.count()).select_from(User)
+        .where(User.role == "USER", User.locked_until > utcnow())) or 0
+    return {"failed_logins_24h": failed, "lockouts_24h": lockouts, "locked_now": locked_now}
+
+
+def _import_status():
+    since = utcnow() - timedelta(hours=24)
+    batches = db.session.execute(
+        select(ImportBatch.status, func.count(ImportBatch.id)).group_by(ImportBatch.status)).all()
+    return {
+        "batches_by_status": {status: count for status, count in batches},
+        "error_rows": db.session.scalar(select(func.count()).select_from(ImportError)) or 0,
+        "batches_24h": db.session.scalar(
+            select(func.count()).select_from(ImportBatch).where(ImportBatch.created_at >= since)) or 0,
+    }
+
+
+def _alert_status():
+    """Aggregate only: counts by kind/severity/status, never an alert's text.
+
+    Alert.explanation names a category and a threshold for one person, so the
+    console counts rows and stops there (FR-51).
+    """
+    by_kind = db.session.execute(
+        select(Alert.kind, func.count(Alert.id)).group_by(Alert.kind)).all()
+    by_severity = db.session.execute(
+        select(Alert.severity, func.count(Alert.id)).group_by(Alert.severity)).all()
+    by_status = db.session.execute(
+        select(Alert.status, func.count(Alert.id)).group_by(Alert.status)).all()
+    return {
+        "by_kind": {kind: count for kind, count in by_kind},
+        "by_severity": {severity: count for severity, count in by_severity},
+        "by_status": {status: count for status, count in by_status},
+        "total": db.session.scalar(select(func.count()).select_from(Alert)) or 0,
+        "last_24h": db.session.scalar(
+            select(func.count()).select_from(Alert)
+            .where(Alert.triggered_at >= utcnow() - timedelta(hours=24))) or 0,
+    }
+
+
+def _transaction_status():
+    """Row counts only. No amount, description, merchant or account name is read.
+
+    There is no per-row creation timestamp to trend on: `posted_at` is the date
+    printed on the statement, not the moment the row was written, so no "last
+    24h" figure is reported rather than a misleading one.
+    """
+    by_source = db.session.execute(
+        select(Transaction.source, func.count(Transaction.id)).group_by(Transaction.source)).all()
+    return {
+        "total": db.session.scalar(select(func.count()).select_from(Transaction)) or 0,
+        "by_source": {source: count for source, count in by_source},
+        "from_import": db.session.scalar(
+            select(func.count()).select_from(Transaction)
+            .where(Transaction.import_batch_id.is_not(None))) or 0,
+        "uncategorised": db.session.scalar(
+            select(func.count()).select_from(Transaction)
+            .join(Category, Category.id == Transaction.category_id)
+            .where(Category.name == "Uncategorised")) or 0,
+    }
+
+
+def system_status():
+    from . import metrics
+    last_job = db.session.scalar(
+        select(AuditLog).where(AuditLog.action.like("NIGHTLY_JOB:%")).order_by(AuditLog.created_at.desc()))
+    total_users = db.session.scalar(select(func.count()).select_from(User).where(User.role == "USER")) or 0
+    return {
+        "requests": metrics.snapshot(),
+        "database": _database_status(),
+        "auth": _auth_status(),
+        "imports": _import_status(),
+        "alerts": _alert_status(),
+        "transactions": _transaction_status(),
+        "users": {
+            # FR-50 hides aggregates below five accounts so a single total
+            # cannot be read back as one person's behaviour.
+            "suppressed": total_users < 5,
+            "total": total_users if total_users >= 5 else None,
+            "active_30d": (db.session.scalar(
+                select(func.count()).select_from(User)
+                .where(User.role == "USER", User.last_login_at >= utcnow() - timedelta(days=30))) or 0)
+            if total_users >= 5 else None,
+        },
+        "jobs": {
+            "nightly_alerts": {
+                "status": last_job.action.split(":", 1)[1] if last_job else "NEVER_RUN",
+                "last_run": last_job.created_at.isoformat() if last_job else None,
+            }
+        },
+    }
+
+
+# --- System log (FR-50) ----------------------------------------------------
+# audit_logs stores one opaque `action` string. The console needs a category
+# and a severity to filter by, so both are derived here rather than migrated
+# into the table: the mapping is presentation, and a new prefix must not
+# require a schema change to show up.
+_LOG_RULES = (
+    ("LOGIN_FAILED:", "AUTH", "WARNING"),
+    ("ACCOUNT_DELETED:", "DATA", "CRITICAL"),
+    ("NIGHTLY_JOB:", "JOB", "INFO"),
+    ("ADMIN_CHANGE_ROLE:", "ADMIN", "CRITICAL"),
+    ("ADMIN_LOCK_USER:", "ADMIN", "WARNING"),
+    ("ADMIN_UNLOCK_USER:", "ADMIN", "INFO"),
+    ("ADMIN_RESET_PASSWORD:", "ADMIN", "WARNING"),
+    ("ADMIN_SUPPORT_REPORT_", "ADMIN", "INFO"),
+)
+
+
+def classify_log(action):
+    for prefix, category, severity in _LOG_RULES:
+        if action.startswith(prefix):
+            if prefix == "LOGIN_FAILED:" and action.endswith(":LOCKED"):
+                return category, "CRITICAL"
+            return category, severity
+    return "OTHER", "INFO"
+
+
+def log_entry(row):
+    category, severity = classify_log(row.action)
+    return {"id": row.id, "action": row.action, "category": category, "severity": severity,
+            "user_id": row.user_id, "created_at": row.created_at.isoformat()}
+
+
+def system_logs(page=1, per_page=25, category="ALL", severity="ALL", query="", hours=None):
+    statement = select(AuditLog)
+    if query:
+        statement = statement.where(AuditLog.action.contains(query))
+    if hours:
+        statement = statement.where(AuditLog.created_at >= utcnow() - timedelta(hours=int(hours)))
+    prefixes = [prefix for prefix, group, _ in _LOG_RULES if group == category]
+    if category != "ALL" and prefixes:
+        statement = statement.where(or_(*[AuditLog.action.like(f"{prefix}%") for prefix in prefixes]))
+    page_result = db.paginate(statement.order_by(AuditLog.created_at.desc()),
+                              page=page, per_page=per_page, error_out=False)
+    items = [log_entry(row) for row in page_result.items]
+    if severity != "ALL":
+        items = [item for item in items if item["severity"] == severity]
+    return items, page_result
